@@ -2,7 +2,15 @@
 require('vendor\robrichards\xmlseclibs\src\XMLSecurityDSig.php');
 require('vendor\robrichards\xmlseclibs\src\XMLSecurityKey.php');
 
+//covertir_firma
+$filename = 'firma.p12';
+$password = 'Flor2022';
+$results = array();
+$worked = openssl_pkcs12_read(file_get_contents($filename), $results, $password);
 
+
+// Save the public key in public.pem file
+file_put_contents('public.pem', $results['pkey']);
 // Load the XML to be signed
 $doc = new DOMDocument();
 $doc->load('factura.xml');
@@ -14,27 +22,25 @@ $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
 // Sign using SHA-256
 $objDSig->addReference(
     $doc, 
-    XMLSecurityDSig::SHA256, 
+    XMLSecurityDSig::SHA1, 
     array('http://www.w3.org/2000/09/xmldsig#enveloped-signature')
 );
 
 // Create a new (private) Security key
-$objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, array('type'=>'private'));
+$objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA1, array('type'=>'private'));
 /*
 If key has a passphrase, set it using
 $objKey->passphrase = '<passphrase>';
 */
 // Load the private key
-$objKey->loadKey('firma_cert_out.pem', TRUE);
+$objKey->loadKey('public.pem', TRUE);
 
 // Sign the XML file
-$objDSig->sign($objKey);
+$firma_signatura =$objDSig->sign($objKey);
 
-// Add the associated public key to the signature
-$objDSig->add509Cert(file_get_contents('firma_cert_out.pem'));
+echo $firma_signatura;
 
-// Append the signature to the XML
-$objDSig->appendSignature($doc->documentElement);
-// Save the signed XML
-$doc->save('signed.xml');
+
+
+
 ?>
